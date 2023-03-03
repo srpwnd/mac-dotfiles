@@ -49,6 +49,9 @@ require('packer').startup(function(use)
   }
   use { 'https://codeberg.org/esensar/nvim-dev-container' }
   use { "NTBBloodbath/rest.nvim" }
+  use { 
+    'PedramNavid/dbtpal'
+  }
 end)
 
 
@@ -191,3 +194,33 @@ require("catppuccin").setup({
 require("bufferline").setup({
   highlights = require("catppuccin.groups.integrations.bufferline").get()
 })
+
+--- dbtpal
+
+local path = vim.fn.expand("%:p")
+vim.g.dbtpal_log_level = "debug"
+
+
+require("dbtpal").setup({
+  path_to_dbt = "docker",
+  pre_cmd_args = {
+    "exec",
+    "$(docker ps | grep meltano-airflow-scheduler | sed -e \'s/ .*$//\')",
+    "meltano",
+    "invoke",
+    "dbt-duckdb"
+  },
+  path_to_dbt_project = "/project/transform",
+  -- path_to_dbt_profiles_dir = (path:match("(.*transform/)") or "") .. "profiles/duckdb",
+  path_to_dbt_profiles_dir = "/project/transform/profiles/duckdb",
+  extended_path_search = true,
+  protect_compiled_files = true
+})
+
+vim.keymap.set('n', '<leader>drf', require("dbtpal").run)
+vim.keymap.set('n', '<leader>drp', require("dbtpal").run_all)
+vim.keymap.set('n', '<leader>dtf', require("dbtpal").test)
+vim.keymap.set('n', '<leader>dm', require('dbtpal.telescope').dbt_picker)
+
+require('telescope').load_extension('dbtpal')
+

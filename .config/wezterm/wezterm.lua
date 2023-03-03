@@ -11,4 +11,5 @@ end
 return {
   color_scheme = scheme_for_appearance(wezterm.gui.get_appearance()),
   use_fancy_tab_bar = false,
+  send_composed_key_when_left_alt_is_pressed = true,
 }
