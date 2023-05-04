@@ -133,13 +133,4 @@ unset __conda_setup
 
 export EDITOR=nvim
 
-if [ -r ~/.zshrc ]; then echo 'export GPG_TTY=$(tty)' >> ~/.zshrc; \
-else echo 'export GPG_TTY=$(tty)' >> ~/.zprofile; fi
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
-export GPG_TTY=$(tty)
 export GPG_TTY=$(tty)
