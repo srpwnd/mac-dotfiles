@@ -1,15 +1,13 @@
 local wezterm = require "wezterm"
 
-function scheme_for_appearance(appearance)
-	if appearance:find "Dark" then
-		return "Catppuccin Macchiato"
-	else
-		return "Catppuccin Latte"
-	end
+local config = {}
+
+if wezterm.config_builder then
+  config = wezterm.config_builder()
 end
 
-return {
-  color_scheme = scheme_for_appearance(wezterm.gui.get_appearance()),
-  use_fancy_tab_bar = false,
-  send_composed_key_when_left_alt_is_pressed = true,
-}
+config.color_scheme = "Gruvbox dark, soft (base16)"
+config.use_fancy_tab_bar = false
+config.send_composed_key_when_left_alt_is_pressed = true
+
+return config

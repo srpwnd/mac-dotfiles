@@ -134,3 +134,6 @@ unset __conda_setup
 export EDITOR=nvim
 
 export GPG_TTY=$(tty)
+
+# Created by `pipx` on 2023-05-16 07:03:12
+export PATH="$PATH:/Users/srpwnd/.local/bin"

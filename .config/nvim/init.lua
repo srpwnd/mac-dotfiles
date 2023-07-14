@@ -41,7 +41,7 @@ require("packer").startup(function(use)
     "nvim-lualine/lualine.nvim",
     requires = { "kyazdani42/nvim-web-devicons", opt = true },
   }
-  use { "catppuccin/nvim", as = "catppuccin",}
+  use { "ellisonleao/gruvbox.nvim" }
   use {
     "akinsho/bufferline.nvim", tag = "v2.*", 
     requires = "kyazdani42/nvim-web-devicons",
@@ -59,14 +59,19 @@ local lsp = require("lspconfig")
 
 lsp.sqlls.setup{}
 lsp.dockerls.setup{}
-lsp.docker_compose_language_service.setup{}
-lsp.yamlls.setup{}
 lsp.pylsp.setup{}
 lsp.bashls.setup{}
 
 --- Copilot
 
 require("copilot").setup({
+  suggestion = {
+    enabled = true,
+    auto_trigger = true,
+    keymap = {
+      accept = "<TAB>",
+    },
+  },
   filetypes = {
     ["*"] = false,
     python = true,
@@ -152,7 +157,7 @@ require("gitsigns").setup()
 
 require("lualine").setup {
   options = {
-    theme = "catppuccin",
+    theme = "gruvbox_dark",
     icons_enabled = true,
     component_separators = { left = "", right = ""},
     section_separators = { left = "", right = ""},
@@ -198,26 +203,15 @@ require("rest-nvim").setup{}
 
 -- Color Scheme --
 
-require("catppuccin").setup({
-  flavour = "macchiato",
-  background = {
-    light = "latte",
-    dark = "macchiato",
-  },
-  integrations = {
-    gitsigns = true,
-    treesitter = true,
-    telescope = true,
-  },
-  indent_blankline = {
-    enabled = true,
-    colored_indent_levels = false,
-  },
+require("gruvbox").setup({
+  contrast = "soft"
 })
+
+vim.o.background="dark"
+vim.cmd([[colorscheme gruvbox]])
 
 --- Bufferline
 
 require("bufferline").setup({
-  highlights = require("catppuccin.groups.integrations.bufferline").get()
 })
 
