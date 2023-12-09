@@ -8,35 +8,95 @@ vim.opt.shiftwidth = 2
 vim.opt.expandtab = true
 vim.opt.termguicolors = true
 
+function Map(mode, lhs, rhs, opts)
+    local options = { noremap = true, silent = true }
+    if opts then
+        options = vim.tbl_extend("force", options, opts)
+    end
+    vim.keymap.set(mode, lhs, rhs, options)
+end
+
+vim.g.mapleader = " "
+
+-- Keybinds --
+
+Map("n", "<C-h>", "<C-w>h")
+Map("n", "<C-j>", "<C-w>j")
+Map("n", "<C-k>", "<C-w>k")
+Map("n", "<C-l>", "<C-w>l")
+
+Map("n", "<C-Up>", ":resize -2<CR>")
+Map("n", "<C-Down>", ":resize +2<CR>")
+Map("n", "<C-Left>", ":vertical resize -2<CR>")
+Map("n", "<C-Right>", ":vertical resize +2<CR>")
+
+Map("v", "<", "<gv")
+Map("v", ">", ">gv")
+
+Map("n", "<TAB>", ":bn<CR>")
+Map("n", "<S-TAB>", ":bp<CR>")
+Map("n", "<leader>bd", ":bd<CR>")
+
+Map("n", "<leader>ff", "<cmd> Telescope find_files <CR>")
+Map("n", "<leader>fa", "<cmd> Telescope find_files follow=true no_ignore=true hidden=true <CR>")
+Map("n", "<leader>fe", "<cmd> Telescope file_browser <CR>")
+Map("n", "<leader>fw", "<cmd> Telescope live_grep <CR>")
+Map("n", "<leader>fb", "<cmd> Telescope buffers <CR>")
+Map("n", "<leader>fh", "<cmd> Telescope help_tags <CR>")
+Map("n", "<leader>fo", "<cmd> Telescope oldfiles <CR>")
+Map("n", "<leader>fc", "<cmd> Telescope colorschemes <CR>")
+Map("n", "<leader>ft", "<cmd> Telescope treesitter<CR>")
+
+Map("n", "<leader>gd", ":lua vim.lsp.buf.definition()<CR>")
+Map("n", "<leader>gi", ":lua vim.lsp.buf.implementation()<CR>")
+Map("n", "K", ":lua vim.lsp.buf.hover()<CR>")
+Map("n", "<leader>rn", ":lua vim.lsp.buf.rename()<CR>")
+Map("n", "<leader>gr", ":lua vim.lsp.buf.references()<CR>")
+
+Map("n", "<leader>nt", "<cmd> Neotree float <CR>")
+
 
 -- Package install --
 
 require("packer").startup(function(use)
   -- Packer can manage itself
-  use "wbthomason/packer.nvim"
-  use "zbirenbaum/copilot.lua"
-  use "neovim/nvim-lspconfig"
+  use { "wbthomason/packer.nvim" }
+  use { "zbirenbaum/copilot.lua" }
+  use { "neovim/nvim-lspconfig" }
+  use { "nvim-telescope/telescope-file-browser.nvim" }
   use {
-    "nvim-telescope/telescope.nvim", tag = "0.1.0",
-    requires = { {"nvim-lua/plenary.nvim"} }
+    "nvim-telescope/telescope.nvim",
+    config = [[require('config.telescope')]],
+    requires = "nvim-lua/plenary.nvim",
   }
   use {
         "nvim-treesitter/nvim-treesitter",
         run = ":TSUpdate"
+  }
+  use { "hrsh7th/nvim-cmp" }
+  use { "hrsh7th/cmp-nvim-lsp" }
+  use { "hrsh7th/cmp-buffer" }
+  use { "hrsh7th/cmp-path" }
+  use { "hrsh7th/cmp-cmdline" }
+  use { "petertriho/cmp-git" }
+  use { "L3MON4D3/LuaSnip" }
+  use { "saadparwaiz1/cmp_luasnip" }
+  use { "windwp/nvim-autopairs" }
+  use { "ray-x/cmp-treesitter" }
+  use { "saecki/crates.nvim" }
+  use { "zbirenbaum/copilot-cmp" }
+  use {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch = "v3.x",
+    requires = { 
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons", -- not strictly required, but recommended
+      "MunifTanjim/nui.nvim",
+      "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
     }
-  use {
-    "cuducos/yaml.nvim",
-    ft = {"yaml"}, -- optional
-    requires = {
-      "nvim-treesitter/nvim-treesitter",
-      "nvim-telescope/telescope.nvim" -- optional
-    },
   }
-  use "lukas-reineke/indent-blankline.nvim"
-  use {
-    "lewis6991/gitsigns.nvim",
-    tag = "release" -- To use the latest release
-  }
+  use { "lukas-reineke/indent-blankline.nvim" }
+  use { "lewis6991/gitsigns.nvim" }
   use {
     "nvim-lualine/lualine.nvim",
     requires = { "kyazdani42/nvim-web-devicons", opt = true },
@@ -46,7 +106,6 @@ require("packer").startup(function(use)
     "akinsho/bufferline.nvim", tag = "v2.*", 
     requires = "kyazdani42/nvim-web-devicons",
   }
-  use { "NTBBloodbath/rest.nvim" }
 end)
 
 
@@ -59,19 +118,20 @@ local lsp = require("lspconfig")
 
 lsp.sqlls.setup{}
 lsp.dockerls.setup{}
-lsp.pylsp.setup{}
+lsp.pyright.setup{}
 lsp.bashls.setup{}
+lsp.rust_analyzer.setup {
+  settings = {
+    ['rust-analyzer'] = {},
+  },
+}
+lsp.tsserver.setup {}
 
 --- Copilot
 
 require("copilot").setup({
-  suggestion = {
-    enabled = true,
-    auto_trigger = true,
-    keymap = {
-      accept = "<TAB>",
-    },
-  },
+  suggestion = { enabled = false },
+  panel = { enabled = false },
   filetypes = {
     ["*"] = false,
     python = true,
@@ -137,17 +197,102 @@ require("nvim-treesitter.configs").setup {
   },
 }
 
+--- Luasnip
+
+require("luasnip/loaders/from_vscode").lazy_load()
+
+--- CMP
+
+local cmp = require'cmp'
+
+  cmp.setup({
+    snippet = {
+      -- REQUIRED - you must specify a snippet engine
+      expand = function(args)
+        require('luasnip').lsp_expand(args.body) -- For `luasnip` users.
+      end,
+    },
+    window = {
+      -- completion = cmp.config.window.bordered(),
+      -- documentation = cmp.config.window.bordered(),
+    },
+    mapping = cmp.mapping.preset.insert({
+      ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+      ['<C-f>'] = cmp.mapping.scroll_docs(4),
+      ['<C-Space>'] = cmp.mapping.complete(),
+      ['<C-e>'] = cmp.mapping.abort(),
+      ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+    }),
+    sources = cmp.config.sources({
+      { name = 'nvim_lsp' },
+      { name = 'luasnip' }, -- For luasnip users.
+    }, {
+      { name = 'buffer' },
+      { name = 'treesitter' },
+      { name = 'path' },
+      { name = 'crates' },
+      { name = 'copilot' },
+      { name = 'git' },
+
+    })
+  })
+
+  -- Set configuration for specific filetype.
+  cmp.setup.filetype('gitcommit', {
+    sources = cmp.config.sources({
+      { name = 'git' }, -- You can specify the `git` source if [you were installed it](https://github.com/petertriho/cmp-git).
+    }, {
+      { name = 'buffer' },
+    })
+  })
+
+  -- Use buffer source for `/` and `?` (if you enabled `native_menu`, this won't work anymore).
+  cmp.setup.cmdline({ '/', '?' }, {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = {
+      { name = 'buffer' }
+    }
+  })
+
+  -- Use cmdline & path source for ':' (if you enabled `native_menu`, this won't work anymore).
+  cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+      { name = 'path' }
+    }, {
+      { name = 'cmdline' }
+    })
+  })
+
+  -- Set up lspconfig.
+  local capabilities = require('cmp_nvim_lsp').default_capabilities()
+  -- Replace <YOUR_LSP_SERVER> with each lsp server you've enabled.
+  require('lspconfig').sqlls.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').dockerls.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').pyright.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').bashls.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').rust_analyzer.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').tsserver.setup {
+    capabilities = capabilities
+  }
+
 --- Indent-blankline
 
 vim.opt.list = true
 vim.opt.listchars:append "space:⋅"
 vim.opt.listchars:append "eol:↴"
 
-require("indent_blankline").setup {
-    space_char_blankline = " ",
-    show_current_context = true,
-    show_current_context_start = true,
-}
+require("ibl").setup {}
 
 --- Gitsigns
 
@@ -196,11 +341,6 @@ require("lualine").setup {
   extensions = {}
 }
 
-
---- Rest.nvim
-
-require("rest-nvim").setup{}
-
 -- Color Scheme --
 
 require("gruvbox").setup({
@@ -215,3 +355,25 @@ vim.cmd([[colorscheme gruvbox]])
 require("bufferline").setup({
 })
 
+--- Neotree 
+
+  require('neo-tree').setup({
+    window = {
+      mappings = {
+        ["J"] = function(state)
+          local tree = state.tree
+          local node = tree:get_node()
+          local siblings = tree:get_nodes(node:get_parent_id())
+          local renderer = require('neo-tree.ui.renderer')
+          renderer.focus_node(state, siblings[#siblings]:get_id())
+        end,
+        ["K"] = function(state)
+          local tree = state.tree
+          local node = tree:get_node()
+          local siblings = tree:get_nodes(node:get_parent_id())
+          local renderer = require('neo-tree.ui.renderer')
+          renderer.focus_node(state, siblings[1]:get_id())
+        end
+      }
+    }
+  })
