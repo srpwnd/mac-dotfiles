@@ -1,6 +1,7 @@
 -- Base --
 
 vim.opt.number = true
+vim.opt.relativenumber = true
 vim.opt.mouse = "a"
 vim.opt.wrap = true
 vim.opt.tabstop = 2
@@ -47,14 +48,23 @@ Map("n", "<leader>fh", "<cmd> Telescope help_tags <CR>")
 Map("n", "<leader>fo", "<cmd> Telescope oldfiles <CR>")
 -- Map("n", "<leader>fc", "<cmd> Telescope colorschemes <CR>")
 Map("n", "<leader>ft", "<cmd> Telescope treesitter<CR>")
+Map("n", "<leader>fp", "<cmd> Telescope projects<CR>")
+Map("n", "<leader>fy", "<cmd> YAMLTelescope <CR>")
 
 Map("n", "<leader>gd", ":lua vim.lsp.buf.definition()<CR>")
-Map("n", "<leader>gi", ":lua vim.lsp.buf.implementation()<CR>")
 Map("n", "K", ":lua vim.lsp.buf.hover()<CR>")
 Map("n", "<leader>rn", ":lua vim.lsp.buf.rename()<CR>")
 Map("n", "<leader>gr", ":lua vim.lsp.buf.references()<CR>")
 
 Map("n", "<leader>nt", "<cmd> Neotree float <CR>")
+
+Map("n", "<leader>gtf", "<cmd> GoTestFile -F <CR>")
+Map("n", "<leader>gta", "<cmd> GoTest -F <CR>")
+Map("n", "<leader>gc", "<cmd> GoCmt <CR>")
+Map("n", "<leader>gq", "<cmd> GoFillStruct <CR>")
+Map("n", "<leader>grr", "<cmd> GoRename <CR>")
+Map("n", "<leader>ga", "<cmd> GoAltV! <CR>")
+
 
 
 -- Package install --
@@ -67,7 +77,6 @@ require("packer").startup(function(use)
   use { "nvim-telescope/telescope-file-browser.nvim" }
   use {
     "nvim-telescope/telescope.nvim",
-    config = [[require('config.telescope')]],
     requires = "nvim-lua/plenary.nvim",
   }
   use {
@@ -85,7 +94,13 @@ require("packer").startup(function(use)
   use { "windwp/nvim-autopairs" }
   use { "ray-x/cmp-treesitter" }
   use { "saecki/crates.nvim" }
-  use { "zbirenbaum/copilot-cmp" }
+  use {
+    "zbirenbaum/copilot-cmp",
+    after = { "copilot.lua" },
+    config = function ()
+      require("copilot_cmp").setup()
+    end
+  }
   use {
     "nvim-neo-tree/neo-tree.nvim",
     branch = "v3.x",
@@ -96,7 +111,7 @@ require("packer").startup(function(use)
       "3rd/image.nvim", -- Optional image support in preview window: See `# Preview Mode` for more information
     }
   }
-  use { "lukas-reineke/indent-blankline.nvim" }
+  use { "ahmedkhalf/project.nvim" }
   use { "lewis6991/gitsigns.nvim" }
   use {
     "nvim-lualine/lualine.nvim",
@@ -104,9 +119,20 @@ require("packer").startup(function(use)
   }
   use { "ellisonleao/gruvbox.nvim" }
   use {
-    "akinsho/bufferline.nvim", tag = "v2.*", 
+    "akinsho/bufferline.nvim", tag = "*", 
     requires = "kyazdani42/nvim-web-devicons",
   }
+  use {
+    "cuducos/yaml.nvim",
+    requires = {
+      "nvim-treesitter/nvim-treesitter",
+      "nvim-telescope/telescope.nvim" -- optional
+    },
+  }
+  use { "ray-x/go.nvim" }
+  use { "ray-x/guihua.lua" }
+  use { "goolord/alpha-nvim" }
+  use { "lukas-reineke/indent-blankline.nvim" }
 end)
 
 
@@ -115,18 +141,17 @@ end)
 
 --- LSP
 
-local lsp = require("lspconfig")
-
-lsp.sqlls.setup{}
-lsp.dockerls.setup{}
-lsp.pyright.setup{}
-lsp.bashls.setup{}
-lsp.rust_analyzer.setup {
-  settings = {
-    ['rust-analyzer'] = {},
-  },
-}
-lsp.tsserver.setup {}
+--local lsp = require("lspconfig")
+--
+--lsp.sqlls.setup{}
+--lsp.pyright.setup{}
+--lsp.bashls.setup{}
+--lsp.rust_analyzer.setup {
+--  settings = {
+--    ['rust-analyzer'] = {},
+--  },
+--}
+--lsp.tsserver.setup {}
 
 --- Copilot
 
@@ -139,6 +164,7 @@ require("copilot").setup({
     sql = true,
     bash = true,
     lua = true,
+    go = true,
     typescript = true,
     dockerfile = true,
     dockercompose = true,
@@ -204,9 +230,15 @@ require("luasnip/loaders/from_vscode").lazy_load()
 
 --- CMP
 
+local has_words_before = function()
+  if vim.api.nvim_buf_get_option(0, "buftype") == "prompt" then return false end
+  local line, col = unpack(vim.api.nvim_win_get_cursor(0))
+  return col ~= 0 and vim.api.nvim_buf_get_text(0, line-1, 0, line-1, col, {})[1]:match("^%s*$") == nil
+end
+
 local cmp = require'cmp'
 
-  cmp.setup({
+cmp.setup({
     snippet = {
       -- REQUIRED - you must specify a snippet engine
       expand = function(args)
@@ -223,16 +255,23 @@ local cmp = require'cmp'
       ['<C-Space>'] = cmp.mapping.complete(),
       ['<C-e>'] = cmp.mapping.abort(),
       ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item. Set `select` to `false` to only confirm explicitly selected items.
+      ["<Tab>"] = vim.schedule_wrap(function(fallback)
+        if cmp.visible() and has_words_before() then
+          cmp.select_next_item({ behavior = cmp.SelectBehavior.Select })
+        else
+          fallback()
+        end
+      end),
     }),
     sources = cmp.config.sources({
       { name = 'nvim_lsp' },
+      { name = 'copilot' },
       { name = 'luasnip' }, -- For luasnip users.
     }, {
       { name = 'buffer' },
       { name = 'treesitter' },
       { name = 'path' },
       { name = 'crates' },
-      { name = 'copilot' },
       { name = 'git' },
 
     })
@@ -281,9 +320,15 @@ local cmp = require'cmp'
     capabilities = capabilities
   }
   require('lspconfig').rust_analyzer.setup {
-    capabilities = capabilities
+    capabilities = capabilities,
+    settings = {
+      ['rust-analyzer'] = {},
+    },
   }
   require('lspconfig').tsserver.setup {
+    capabilities = capabilities
+  }
+  require('lspconfig').gopls.setup {
     capabilities = capabilities
   }
 
@@ -293,7 +338,22 @@ vim.opt.list = true
 vim.opt.listchars:append "space:⋅"
 vim.opt.listchars:append "eol:↴"
 
-require("ibl").setup {}
+require("ibl").setup({
+			scope = {
+				show_start = true,
+        highlight = { "Function", "Label" },
+			},
+			indent = {
+				char = "┊",
+				tab_char = "┊",
+        highlight = { "Function", "Label" },
+				smart_indent_cap = true,
+			},
+			whitespace = {
+        highlight = { "Function", "Label" },
+				remove_blankline_trail = true,
+			},
+		})
 
 --- Gitsigns
 
@@ -323,7 +383,7 @@ require("lualine").setup {
   sections = {
     lualine_a = {"mode"},
     lualine_b = {"branch", "diff", "diagnostics"},
-    lualine_c = {"filename"},
+    lualine_c = {"filename", require("yaml_nvim").get_yaml_key},
     lualine_x = {"encoding", "fileformat", "filetype"},
     lualine_y = {"progress"},
     lualine_z = {"location"}
@@ -353,6 +413,7 @@ vim.cmd([[colorscheme gruvbox]])
 
 --- Bufferline
 
+vim.opt.termguicolors = true
 require("bufferline").setup({
 })
 
@@ -378,3 +439,39 @@ require("bufferline").setup({
       }
     }
   })
+
+--- Project.nvim
+
+require("project_nvim").setup {}
+
+--- Go.nvim
+
+require("go").setup()
+
+--- Alpha.nvim
+
+local alpha = require("alpha")
+local dashboard = require("alpha.themes.dashboard")
+
+-- Set header
+dashboard.section.header.val = {
+    "                                                     ",
+    "  ███╗   ██╗███████╗ ██████╗ ██╗   ██╗██╗███╗   ███╗ ",
+    "  ████╗  ██║██╔════╝██╔═══██╗██║   ██║██║████╗ ████║ ",
+    "  ██╔██╗ ██║█████╗  ██║   ██║██║   ██║██║██╔████╔██║ ",
+    "  ██║╚██╗██║██╔══╝  ██║   ██║╚██╗ ██╔╝██║██║╚██╔╝██║ ",
+    "  ██║ ╚████║███████╗╚██████╔╝ ╚████╔╝ ██║██║ ╚═╝ ██║ ",
+    "  ╚═╝  ╚═══╝╚══════╝ ╚═════╝   ╚═══╝  ╚═╝╚═╝     ╚═╝ ",
+    "                                                     ",
+}
+
+-- Set menu
+dashboard.section.buttons.val = {
+    dashboard.button( "e", "  > New file" , ":ene <BAR> startinsert <CR>"),
+    dashboard.button( "f", "  > Find file", ":Telescope find_files<CR>"),
+    dashboard.button( "r", "  > Recent"   , ":Telescope oldfiles<CR>"),
+    dashboard.button( "s", "  > Settings" , ":e $MYVIMRC | :cd %:p:h | split . | wincmd k | pwd<CR>"),
+    dashboard.button( "q", "  > Quit NVIM", ":qa<CR>"),
+}
+
+alpha.setup(dashboard.opts)
